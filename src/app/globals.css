@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* White */
+    --foreground: 215 39% 16%; /* Deep Blue text for readability */
+    --card: 0 0% 100%;
+    --card-foreground: 215 39% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 39% 16%;
+    --primary: 207 100% 15%; /* Deep Blue #003049 */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 196 71% 92%; /* Light Blue #D4F1F4 */
+    --secondary-foreground: 207 100% 15%; /* Deep Blue for text on light blue */
+    --muted: 196 71% 92%; /* Light Blue for muted elements */
+    --muted-foreground: 198 30% 40%; /* Darker teal for muted text */
+    --accent: 198 30% 40%; /* Teal #40798C - Make slightly more vibrant */
+    --accent-foreground: 0 0% 100%; /* White */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 196 71% 85%; /* Slightly darker light blue for borders */
+    --input: 196 71% 88%; /* Lighter shade of light blue for inputs */
+    --ring: 198 40% 50%; /* Slightly brighter Teal for focus rings */
+    --chart-1: 207 100% 30%; /* Shades of blue and teal */
+    --chart-2: 198 60% 50%;
+    --chart-3: 200 80% 40%;
+    --chart-4: 196 50% 60%;
+    --chart-5: 210 70% 35%;
+    --radius: 0.5rem;
+
+    /* Sidebar specific theme variables */
+    --sidebar-background: 207 100% 15%; /* Deep Blue */
+    --sidebar-foreground: 0 0% 98%; /* White */
+    --sidebar-primary: 196 71% 92%; /* Light Blue for active/primary items in sidebar */
+    --sidebar-primary-foreground: 207 100% 15%; /* Deep Blue for text on light blue */
+    --sidebar-accent: 198 30% 40%; /* Teal for hover/accent items */
+    --sidebar-accent-foreground: 0 0% 100%; /* White */
+    --sidebar-border: 207 100% 25%; /* Darker Deep Blue for borders */
+    --sidebar-ring: 196 71% 92%; /* Light Blue for focus rings */
+  }
+
+  .dark {
+    --background: 215 39% 10%; /* Darker Deep Blue for dark mode background */
+    --foreground: 0 0% 98%; /* White */
+    --card: 215 39% 12%; /* Slightly lighter dark blue for cards */
+    --card-foreground: 0 0% 98%;
+    --popover: 215 39% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 196 71% 85%; /* Lighter Blue for primary in dark mode */
+    --primary-foreground: 215 39% 10%; /* Dark Blue text on Lighter Blue */
+    --secondary: 207 100% 20%; /* Medium Blue for secondary in dark mode */
+    --secondary-foreground: 0 0% 98%; /* White */
+    --muted: 207 100% 20%;
+    --muted-foreground: 196 71% 70%; /* Lighter Teal for muted text */
+    --accent: 198 40% 55%; /* Brighter Teal for accent in dark mode */
+    --accent-foreground: 215 39% 10%; /* Dark Blue text on Teal */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 207 100% 25%; /* Darker Deep Blue for borders */
+    --input: 207 100% 22%; /* Slightly lighter shade of border for inputs */
+    --ring: 198 40% 55%; /* Brighter Teal for focus rings */
+    --chart-1: 196 71% 75%; /* Lighter shades for charts in dark mode */
+    --chart-2: 198 50% 65%;
+    --chart-3: 200 70% 55%;
+    --chart-4: 196 40% 70%;
+    --chart-5: 210 60% 50%;
+
+    /* Sidebar specific theme variables for dark mode */
+    --sidebar-background: 215 39% 8%; /* Even Darker Blue for sidebar background */
+    --sidebar-foreground: 0 0% 95%; /* Off-white */
+    --sidebar-primary: 196 71% 80%; /* Lighter Blue for active/primary items */
+    --sidebar-primary-foreground: 215 39% 8%; /* Dark Blue text */
+    --sidebar-accent: 198 40% 50%; /* Teal for hover/accent items */
+    --sidebar-accent-foreground: 0 0% 95%; /* Off-white */
+    --sidebar-border: 215 39% 15%; /* Medium Dark Blue for borders */
+    --sidebar-ring: 196 71% 80%; /* Lighter Blue for focus rings */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* --- Hackathon UI Enhancements --- */
+
+  /* Card Enhancement: Subtle gradient and stronger hover shadow */
+  .card-standout {
+    @apply shadow-lg hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-card via-card to-secondary/10 dark:to-secondary/5;
+  }
+
+  /* Gamification Badge Enhancement: Subtle hover effect */
+  .achievement-badge {
+     @apply border-2 border-yellow-500/50 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600/50 font-semibold px-3 py-1 text-sm rounded-full flex items-center gap-1 shadow-sm transition-transform hover:scale-105 hover:shadow-md;
+  }
+  .achievement-badge-outline {
+     @apply border-2 border-muted-foreground/30 bg-muted/50 text-muted-foreground font-medium px-3 py-1 text-sm rounded-full flex items-center gap-1 shadow-sm transition-transform hover:scale-105 hover:shadow-md;
+  }
+
+  /* Progress Bar Enhancement: Gradient fill */
+   [data-radix-progress-indicator] {
+     @apply bg-gradient-to-r from-primary to-accent dark:to-accent;
+   }
+
+   /* Add acrylic/blur effect to header */
+  .app-header-acrylic {
+     @apply bg-background/75 backdrop-blur-md;
+   }
+
+  /* --- End Hackathon UI Enhancements --- */
+}
