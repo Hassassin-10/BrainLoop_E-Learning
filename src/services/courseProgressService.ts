@@ -1,11 +1,19 @@
+"use server";
 
-'use server';
+import {
+  db,
+  firestoreServerTimestamp,
+  STUDENTS_COLLECTION,
+} from "@/lib/firebase";
+import {
+  doc,
+  setDoc,
+  type Timestamp,
+  type Firestore,
+} from "firebase/firestore";
+import type { UserCourseProgressUpdate } from "@/types/user";
 
-import { db, firestoreServerTimestamp, STUDENTS_COLLECTION } from '@/lib/firebase';
-import { doc, setDoc, type Timestamp } from 'firebase/firestore';
-import type { UserCourseProgressUpdate } from '@/types/user';
-
-export const USER_COURSE_PROGRESS_SUBCOLLECTION = 'courses';
+export const USER_COURSE_PROGRESS_SUBCOLLECTION = "courses";
 
 /**
  * Updates or creates a student's progress for a specific course.
@@ -23,19 +31,27 @@ export async function updateUserCourseProgress(
   progressData: Partial<UserCourseProgressUpdate>
 ): Promise<void> {
   if (!userId || !courseId) {
-    throw new Error('User ID and Course ID are required to update course progress.');
+    throw new Error(
+      "User ID and Course ID are required to update course progress."
+    );
+  }
+
+  if (!db) {
+    throw new Error("Firestore instance is not initialized.");
   }
 
   // Path: students/{userId}/courses/{courseId}
   const courseProgressDocRef = doc(
-    db,
+    db as Firestore,
     STUDENTS_COLLECTION,
     userId,
     USER_COURSE_PROGRESS_SUBCOLLECTION,
     courseId
   );
 
-  const dataToSet: Partial<UserCourseProgressUpdate> & { lastAccessed: Timestamp } = {
+  const dataToSet: Partial<UserCourseProgressUpdate> & {
+    lastAccessed: Timestamp;
+  } = {
     ...progressData,
     lastAccessed: firestoreServerTimestamp() as Timestamp, // Ensure correct type casting
   };
@@ -44,10 +60,12 @@ export async function updateUserCourseProgress(
     // Use setDoc with merge:true to create the document if it doesn't exist,
     // or update it if it does.
     await setDoc(courseProgressDocRef, dataToSet, { merge: true });
-    console.log(`Course progress for user ${userId}, course ${courseId} updated successfully.`);
+    console.log(
+      `Course progress for user ${userId}, course ${courseId} updated successfully.`
+    );
   } catch (error) {
-    console.error('Error updating course progress in Firestore:', error);
-    throw new Error('Failed to update course progress.');
+    console.error("Error updating course progress in Firestore:", error);
+    throw new Error("Failed to update course progress.");
   }
 }
 

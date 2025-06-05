@@ -218,63 +218,48 @@ export default function TimetablePage() {
 
   const handleExportToPdf = () => {
     const doc = new jsPDF();
-    const studentNameDisplay = studentProfile?.name || studentId || "My";
-    doc.setFontSize(18);
-    doc.text(`${studentNameDisplay}'s Weekly Timetable`, 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-    let startY = 30;
+    // Add title
+    doc.setFontSize(20);
+    doc.text("Weekly Timetable", pageWidth / 2, 15, { align: "center" });
+
+    // Prepare table data with proper typing
+    const tableData: CellInput[][] = [];
 
     daysOfWeek.forEach((day) => {
       const dayEvents = groupedEvents[day];
       if (dayEvents.length > 0) {
-        if (startY > 260) {
-          doc.addPage();
-          startY = 20;
-        }
-        doc.setFontSize(14);
-        doc.text(day, 14, startY);
-        startY += 6;
-
-        const tableColumn = ["Time", "Title", "Description"];
-        const tableRows: (string | undefined)[][] = [];
-
+        tableData.push([
+          { content: day, colSpan: 3, styles: { fontStyle: "bold" } },
+        ]);
         dayEvents.forEach((event) => {
-          const eventData = [
-            `${event.startTime} - ${event.endTime}`,
+          tableData.push([
+            event.startTime + " - " + event.endTime,
             event.title,
-            event.description || "-",
-          ];
-          tableRows.push(eventData);
+            event.description || "",
+          ]);
         });
-
-        autoTable(doc, {
-          head: [tableColumn],
-          body: tableRows,
-          startY: startY,
-          theme: "grid",
-          headStyles: { fillColor: [0, 48, 73] },
-          styles: { fontSize: 9, cellPadding: 1.5 },
-          columnStyles: {
-            0: { cellWidth: 35 },
-            1: { cellWidth: "auto" },
-            2: { cellWidth: "auto" },
-          },
-          didDrawPage: (data) => {
-            startY = data.cursor?.y ?? 20;
-          },
-        });
-        // autoTable updates startY through its hook, so we just add padding
-        startY = (doc as any).lastAutoTable.finalY + 10;
       }
     });
 
-    doc.save(`${studentNameDisplay}_timetable.pdf`);
-    toast({
-      title: "Export Successful",
-      description: "Your timetable has been downloaded as a PDF.",
+    // Configure and generate table
+    autoTable(doc, {
+      startY: 25,
+      head: [["Time", "Event", "Description"] as CellInput[]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { fillColor: [66, 139, 202] },
+      margin: { top: 25 },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 90 },
+      },
     });
+
+    // Save the PDF
+    doc.save("timetable.pdf");
   };
 
   const handleGetAiSuggestions = async () => {

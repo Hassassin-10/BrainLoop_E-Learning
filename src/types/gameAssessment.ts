@@ -1,7 +1,11 @@
+import type { Timestamp, FieldValue } from "firebase/firestore";
 
-import type { Timestamp, FieldValue } from 'firebase/firestore';
-
-export type ChallengeType = 'python_debug' | 'logic_puzzle' | 'algorithm_choice' | 'fill_in_the_blanks' | 'story_decision';
+export type ChallengeType =
+  | "python_debug"
+  | "logic_puzzle"
+  | "algorithm_choice"
+  | "fill_in_the_blanks"
+  | "story_decision";
 
 export interface GameAssessmentChallengeData {
   codeSnippet?: string; // For python_debug
@@ -30,15 +34,17 @@ export interface GameAssessment {
   challengeType: ChallengeType;
   challengeData: GameAssessmentChallengeData;
   solution: GameAssessmentSolution;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "medium" | "hard";
   learningObjectives?: string[]; // What this assessment targets
   generatedAt: Timestamp | FieldValue | string; // Allow string for serialized form
   approvedByAdmin?: boolean; // For admin review flow
 }
 
 // Output type for the Genkit flow when generating an assessment
-export type GameAssessmentOutput = Omit<GameAssessment, 'id' | 'courseId' | 'moduleId' | 'generatedAt' | 'approvedByAdmin'>;
-
+export type GameAssessmentOutput = Omit<
+  GameAssessment,
+  "id" | "courseId" | "moduleId" | "generatedAt" | "approvedByAdmin"
+>;
 
 export interface UserGameScore {
   id?: string; // Firestore document ID (will be assessmentId for simplicity)
@@ -47,18 +53,22 @@ export interface UserGameScore {
   courseId: string;
   moduleId: string;
   score: number; // 0-100 or points
-  attempts: number;
-  completedAt: Timestamp | FieldValue; // This might also need serialization if passed to client
-  timeTakenSeconds?: number;
-  answers?: any; // Store user's specific answers/choices
-  feedback?: 'passed' | 'failed_needs_review';
+  maxScore: number; // Maximum possible score
+  timeTaken: number; // Time taken in seconds
+  answers: Record<string, string>; // User's answers for each question/challenge
+  completedAt: Timestamp | FieldValue; // Timestamp when the game was completed
 }
 
+// Input type for generating a game assessment
 export interface GameAssessmentGenerationInput {
-  courseId: string;
-  moduleId: string;
-  topic: string; // e.g., module title or specific sub-topic
-  moduleObjectives: string[]; // Key learning outcomes for the module
-  difficulty: 'easy' | 'medium' | 'hard';
+  courseContext: {
+    courseId: string;
+    moduleId: string;
+    moduleTitle: string;
+    moduleDescription: string;
+    learningObjectives?: string[];
+  };
+  challengeType: ChallengeType;
+  difficulty: "easy" | "medium" | "hard";
+  additionalContext?: string;
 }
-

@@ -1,10 +1,15 @@
-'use server';
+"use server";
 
-import { db, firestoreServerTimestamp, type Timestamp } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import type { ARSessionLog } from '@/types/arSession';
+import {
+  db,
+  firestoreServerTimestamp,
+  type Timestamp,
+  firebaseInitializationError,
+} from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import type { ARSessionLog } from "@/types/arSession";
 
-const AR_SESSIONS_COLLECTION = 'arSessions';
+const AR_SESSIONS_COLLECTION = "arSessions";
 
 /**
  * Logs the launch of an AR lab session to Firestore.
@@ -26,10 +31,18 @@ export async function logArSessionLaunch(
   url: string
 ): Promise<string> {
   if (!userId || !courseId || !moduleId || !toolUsed || !url) {
-    throw new Error('All parameters are required to log AR session launch.');
+    throw new Error("All parameters are required to log AR session launch.");
   }
 
-  const sessionData: Omit<ARSessionLog, 'id' | 'launchedAt'> & { launchedAt: Timestamp } = {
+  // Check if Firebase is properly initialized
+  if (!db) {
+    console.error("Firestore is not initialized:", firebaseInitializationError);
+    throw new Error("Database is not available.");
+  }
+
+  const sessionData: Omit<ARSessionLog, "id" | "launchedAt"> & {
+    launchedAt: Timestamp;
+  } = {
     studentId: userId,
     ...(studentProfileId && { studentProfileId }),
     courseId,
@@ -40,11 +53,14 @@ export async function logArSessionLaunch(
   };
 
   try {
-    const docRef = await addDoc(collection(db, AR_SESSIONS_COLLECTION), sessionData);
+    const docRef = await addDoc(
+      collection(db, AR_SESSIONS_COLLECTION),
+      sessionData
+    );
     console.log(`AR session launch logged with ID: ${docRef.id}`);
     return docRef.id;
   } catch (error) {
-    console.error('Error logging AR session launch to Firestore:', error);
-    throw new Error('Failed to log AR session launch.');
+    console.error("Error logging AR session launch to Firestore:", error);
+    throw new Error("Failed to log AR session launch.");
   }
 }

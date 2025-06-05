@@ -1,5 +1,4 @@
-
-'use server';
+"use server";
 /**
  * @fileOverview A Genkit flow to generate GPT-powered game-based assessments.
  *
@@ -8,75 +7,186 @@
  * - GameAssessmentSchema - Output schema for a single assessment.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import type { ChallengeType, GameAssessmentOutput, GameAssessmentGenerationInput } from '@/types/gameAssessment';
-import { mockCourses } from '@/data/mockCourses'; // For fetching module context
+import { ai } from "@/ai/genkit";
+import { z } from "genkit";
+import type {
+  ChallengeType,
+  GameAssessmentOutput,
+  GameAssessmentGenerationInput,
+} from "@/types/gameAssessment";
+import { mockCourses } from "@/data/mockCourses"; // For fetching module context
 
-const GameAssessmentChallengeDataSchema = z.object({
-  codeSnippet: z.string().optional().describe('Code snippet for python_debug type challenges.'),
-  options: z.array(z.object({ id: z.string(), text: z.string(), isCorrect: z.boolean().optional() })).optional().describe('Multiple choice options for relevant challenge types.'),
-  blanks: z.array(z.object({ id: z.string(), correctValue: z.string(), hint: z.string().optional() })).optional().describe('Blanks for fill_in_the_blanks challenges.'),
-  storyBranches: z.array(z.object({ choice: z.string(), nextStoryNodeId: z.string() })).optional().describe('Branches for story_decision challenges.'),
-  puzzleDescription: z.string().optional().describe('Description for logic_puzzle type challenges.'),
-}).describe('Data specific to the challenge type.');
+const GameAssessmentChallengeDataSchema = z
+  .object({
+    codeSnippet: z
+      .string()
+      .optional()
+      .describe("Code snippet for python_debug type challenges."),
+    options: z
+      .array(
+        z.object({
+          id: z.string(),
+          text: z.string(),
+          isCorrect: z.boolean().optional(),
+        })
+      )
+      .optional()
+      .describe("Multiple choice options for relevant challenge types."),
+    blanks: z
+      .array(
+        z.object({
+          id: z.string(),
+          correctValue: z.string(),
+          hint: z.string().optional(),
+        })
+      )
+      .optional()
+      .describe("Blanks for fill_in_the_blanks challenges."),
+    storyBranches: z
+      .array(z.object({ choice: z.string(), nextStoryNodeId: z.string() }))
+      .optional()
+      .describe("Branches for story_decision challenges."),
+    puzzleDescription: z
+      .string()
+      .optional()
+      .describe("Description for logic_puzzle type challenges."),
+  })
+  .describe("Data specific to the challenge type.");
 
-const GameAssessmentSolutionSchema = z.object({
-  correctOptionId: z.string().optional().describe('ID of the correct option if applicable.'),
-  correctCode: z.string().optional().describe('Corrected code snippet if applicable.'),
-  explanation: z.string().describe('Explanation of the solution.'),
-  correctValues: z.array(
-    z.object({
-      blankId: z.string().describe('The ID of the blank from the challengeData.blanks array.'),
-      value: z.string().describe('The correct string value for this blank.')
-    })
-  ).optional().describe('An array of objects, each representing a correct value for a fill_in_the_blanks challenge. E.g., [{"blankId": "blank_1", "value": "answerA"}, {"blankId": "blank_2", "value": "answerB"}]'),
-  optimalPath: z.string().optional().describe('Optimal path for story_decision challenges.'),
-}).describe('Solution and explanation for the challenge.');
+const GameAssessmentSolutionSchema = z
+  .object({
+    correctOptionId: z
+      .string()
+      .optional()
+      .describe("ID of the correct option if applicable."),
+    correctCode: z
+      .string()
+      .optional()
+      .describe("Corrected code snippet if applicable."),
+    explanation: z.string().describe("Explanation of the solution."),
+    correctValues: z
+      .array(
+        z.object({
+          blankId: z
+            .string()
+            .describe(
+              "The ID of the blank from the challengeData.blanks array."
+            ),
+          value: z
+            .string()
+            .describe("The correct string value for this blank."),
+        })
+      )
+      .optional()
+      .describe(
+        'An array of objects, each representing a correct value for a fill_in_the_blanks challenge. E.g., [{"blankId": "blank_1", "value": "answerA"}, {"blankId": "blank_2", "value": "answerB"}]'
+      ),
+    optimalPath: z
+      .string()
+      .optional()
+      .describe("Optimal path for story_decision challenges."),
+  })
+  .describe("Solution and explanation for the challenge.");
 
 // This schema matches GameAssessmentOutput from types/gameAssessment.ts
 const GameAssessmentOutputSchema = z.object({
-  title: z.string().describe('Engaging title for the game assessment.'),
-  storyNarration: z.string().describe('A brief, thematic story or scenario to introduce the challenge.'),
-  challengeType: z.enum(['python_debug', 'logic_puzzle', 'algorithm_choice', 'fill_in_the_blanks', 'story_decision']).describe('The type of game/puzzle.'),
+  title: z.string().describe("Engaging title for the game assessment."),
+  storyNarration: z
+    .string()
+    .describe(
+      "A brief, thematic story or scenario to introduce the challenge."
+    ),
+  challengeType: z
+    .enum([
+      "python_debug",
+      "logic_puzzle",
+      "algorithm_choice",
+      "fill_in_the_blanks",
+      "story_decision",
+    ])
+    .describe("The type of game/puzzle."),
   challengeData: GameAssessmentChallengeDataSchema,
   solution: GameAssessmentSolutionSchema,
-  difficulty: z.enum(['easy', 'medium', 'hard']).describe('Difficulty level of the assessment.'),
-  learningObjectives: z.array(z.string()).optional().describe('Learning objectives covered by this assessment.'),
+  difficulty: z
+    .enum(["easy", "medium", "hard"])
+    .describe("Difficulty level of the assessment."),
+  learningObjectives: z
+    .array(z.string())
+    .optional()
+    .describe("Learning objectives covered by this assessment."),
 });
-export type GameAssessmentOutputFlowType = z.infer<typeof GameAssessmentOutputSchema>;
-
+export type GameAssessmentOutputFlowType = z.infer<
+  typeof GameAssessmentOutputSchema
+>;
 
 const GameAssessmentGenerationInputSchema = z.object({
-  courseId: z.string().describe('The ID of the course.'),
-  moduleId: z.string().describe('The ID of the module within the course.'),
-  topic: z.string().describe('The main topic of the module.'),
-  moduleObjectives: z.array(z.string()).describe('Specific learning objectives for this module.'),
-  difficulty: z.enum(['easy', 'medium', 'hard']).default('medium').describe('Desired difficulty for the assessment.'),
+  courseContext: z.object({
+    courseId: z.string().describe("The ID of the course."),
+    moduleId: z.string().describe("The ID of the module within the course."),
+    moduleTitle: z.string().describe("The title of the module."),
+    moduleDescription: z
+      .string()
+      .describe("Description of the module content."),
+    learningObjectives: z
+      .array(z.string())
+      .optional()
+      .describe("Learning objectives for this module."),
+  }),
+  challengeType: z
+    .enum([
+      "python_debug",
+      "logic_puzzle",
+      "algorithm_choice",
+      "fill_in_the_blanks",
+      "story_decision",
+    ])
+    .describe("Type of game-based assessment."),
+  difficulty: z
+    .enum(["easy", "medium", "hard"])
+    .default("medium")
+    .describe("Desired difficulty for the assessment."),
 });
-export type GameAssessmentGenerationInputFlowType = z.infer<typeof GameAssessmentGenerationInputSchema>;
+export type GameAssessmentGenerationInputFlowType = z.infer<
+  typeof GameAssessmentGenerationInputSchema
+>;
 
+export async function generateGameAssessment(
+  input: GameAssessmentGenerationInput
+): Promise<GameAssessmentOutputFlowType> {
+  const courseId = input.courseContext.courseId;
+  const moduleId = input.courseContext.moduleId;
 
-export async function generateGameAssessment(input: GameAssessmentGenerationInput): Promise<GameAssessmentOutputFlowType> {
-  // In a real scenario, fetch course/module details from Firestore
-  // For now, we can simulate this or use mock data if needed
-  const courseContext = mockCourses.find(c => c.id === input.courseId);
-  const moduleContext = courseContext?.modules.find(m => m.id === input.moduleId);
+  // Fetch course/module details from mockCourses
+  const courseContext = mockCourses.find((c) => c.id === courseId);
+  const moduleContext = courseContext?.modules.find((m) => m.id === moduleId);
 
   const contextPrompt = `
-    Course: ${courseContext?.name || input.courseId}
-    Module: ${moduleContext?.title || input.moduleId}
-    Topic: ${input.topic}
-    Learning Objectives: ${input.moduleObjectives.join(', ')}
+    Course: ${courseContext?.name || courseId}
+    Module: ${moduleContext?.title || moduleId}
+    Topic: ${input.courseContext.moduleTitle}
+    Learning Objectives: ${
+      input.courseContext.learningObjectives?.join(", ") || "Not specified"
+    }
     Difficulty: ${input.difficulty}
   `;
 
-  return generateGameAssessmentFlow({ ...input, contextPrompt });
+  const flowInput = {
+    challengeType: input.challengeType,
+    difficulty: input.difficulty,
+    courseContext: input.courseContext,
+    contextPrompt,
+  };
+
+  return generateGameAssessmentFlow(flowInput);
 }
 
 const prompt = ai.definePrompt({
-  name: 'generateGameAssessmentPrompt',
-  input: { schema: GameAssessmentGenerationInputSchema.extend({ contextPrompt: z.string() }) },
+  name: "generateGameAssessmentPrompt",
+  input: {
+    schema: GameAssessmentGenerationInputSchema.extend({
+      contextPrompt: z.string(),
+    }),
+  },
   output: { schema: GameAssessmentOutputSchema },
   prompt: `You are an expert educational game designer tasked with creating an engaging, story-driven assessment for a learning module.
 Given the following context:
@@ -98,41 +208,66 @@ The 'title' and 'storyNarration' should be creative and thematic.
 `,
   config: {
     safetySettings: [
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE'},
+      {
+        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+        threshold: "BLOCK_ONLY_HIGH",
+      },
+      {
+        category: "HARM_CATEGORY_HARASSMENT",
+        threshold: "BLOCK_MEDIUM_AND_ABOVE",
+      },
     ],
   },
 });
 
 const generateGameAssessmentFlow = ai.defineFlow(
   {
-    name: 'generateGameAssessmentFlow',
-    inputSchema: GameAssessmentGenerationInputSchema.extend({ contextPrompt: z.string() }),
+    name: "generateGameAssessmentFlow",
+    inputSchema: GameAssessmentGenerationInputSchema.extend({
+      contextPrompt: z.string(),
+    }),
     outputSchema: GameAssessmentOutputSchema,
   },
   async (input) => {
-    console.log("[generateGameAssessmentFlow] Input received:", JSON.stringify(input, null, 2));
+    console.log(
+      "[generateGameAssessmentFlow] Input received:",
+      JSON.stringify(input, null, 2)
+    );
     try {
       const { output } = await prompt(input);
-      
+
       if (!output) {
-        console.error("[generateGameAssessmentFlow] LLM output was null or undefined.");
-        throw new Error('LLM did not return a valid assessment structure. Output was null or undefined.');
+        console.error(
+          "[generateGameAssessmentFlow] LLM output was null or undefined."
+        );
+        throw new Error(
+          "LLM did not return a valid assessment structure. Output was null or undefined."
+        );
       }
-      console.log("[generateGameAssessmentFlow] Successfully generated and parsed assessment:", JSON.stringify(output, null, 2));
+      console.log(
+        "[generateGameAssessmentFlow] Successfully generated and parsed assessment:",
+        JSON.stringify(output, null, 2)
+      );
       return output;
     } catch (error: any) {
-      console.error("[generateGameAssessmentFlow] Error during generation process:", error);
+      console.error(
+        "[generateGameAssessmentFlow] Error during generation process:",
+        error
+      );
       let errorMessage = "Failed to generate game assessment.";
-      
-      if (error.name === 'ZodError' || (error.message && error.message.toLowerCase().includes('zod'))) {
+
+      if (
+        error.name === "ZodError" ||
+        (error.message && error.message.toLowerCase().includes("zod"))
+      ) {
         errorMessage = `LLM output schema validation failed. Details: ${error.message}`;
-        if(error.errors) errorMessage += ` Issues: ${JSON.stringify(error.errors)}`;
+        if (error.errors)
+          errorMessage += ` Issues: ${JSON.stringify(error.errors)}`;
       } else if (error.message) {
         errorMessage = `Generation Error: ${error.message}`;
       }
-      
-      if (error.details) { 
+
+      if (error.details) {
         errorMessage += ` Genkit Details: ${JSON.stringify(error.details)}`;
       }
       if (error.stack) {
@@ -142,4 +277,3 @@ const generateGameAssessmentFlow = ai.defineFlow(
     }
   }
 );
-

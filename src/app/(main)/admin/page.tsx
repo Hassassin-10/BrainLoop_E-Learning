@@ -73,6 +73,7 @@ import { generateGameAssessment } from "@/ai/flows/generate-game-assessment";
 import type {
   GameAssessmentOutput,
   GameAssessment,
+  ChallengeType,
 } from "@/types/gameAssessment";
 import {
   saveGeneratedAssessment,
@@ -284,13 +285,17 @@ export default function AdminPage() {
       }
 
       const assessmentInput = {
-        courseId: selectedCourseForAssessment,
-        moduleId: selectedModuleForAssessment,
+        courseContext: {
+          courseId: selectedCourseForAssessment,
+          moduleId: selectedModuleForAssessment,
+          moduleTitle: selectedModule.title,
+          moduleDescription: selectedModule.description || "",
+          learningObjectives: selectedModule.description
+            ? [selectedModule.description]
+            : [],
+        },
+        challengeType: "python_debug" as ChallengeType, // Default type, can be made configurable
         difficulty: assessmentDifficulty,
-        topic: selectedModule.title,
-        moduleObjectives: selectedModule.description
-          ? [selectedModule.description]
-          : [], // Using description as objectives if available
       };
 
       const generatedData = await generateGameAssessment(assessmentInput);
@@ -326,11 +331,7 @@ export default function AdminPage() {
   const fetchGameAssessments = async (courseId: string, moduleId: string) => {
     setIsLoadingAssessments(true);
     try {
-      const assessments = await getGameAssessmentsForModule(
-        courseId,
-        moduleId,
-        isAdmin
-      );
+      const assessments = await getGameAssessmentsForModule(courseId, moduleId);
       setGeneratedGameAssessments(assessments);
     } catch (error) {
       console.error("Error fetching game assessments:", error);

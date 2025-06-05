@@ -1,5 +1,4 @@
-
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from "firebase/firestore";
 
 export interface AudioNavigationSettings {
   isEnabled: boolean;
@@ -12,5 +11,15 @@ export interface AudioNavLog {
   commandText: string;
   actionTaken: string; // e.g., 'navigate_dashboard', 'qa_attempt', 'playback_play'
   details?: Record<string, any>; // Additional details about the action
+  timestamp: Timestamp;
+}
+
+export interface AudioNavigationLog {
+  id?: string;
+  userId: string;
+  command: string;
+  route: string;
+  wasSuccessful: boolean;
+  errorMessage?: string;
   timestamp: Timestamp;
 }
