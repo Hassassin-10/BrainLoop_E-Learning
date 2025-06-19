@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     config.ignoreWarnings = [
       { module: /@opentelemetry/ },
       { module: /genkit/ },
+      { module: /@splinetool/ },
       { message: /require\.extensions/ },
     ];
 
@@ -66,6 +67,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https", // For user avatars from Vercel
         hostname: "avatar.vercel.sh",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "prod.spline.design",
         port: "",
         pathname: "/**",
       },

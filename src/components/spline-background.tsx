@@ -70,11 +70,23 @@ export function SplineBackground() {
           }
         >
           <Spline
-            scene="https://prod.spline.design/your-scene-url"
-            onLoad={() => setIsLoaded(true)}
+            scene={
+              process.env.NEXT_PUBLIC_SPLINE_SCENE_URL ||
+              "https://prod.spline.design/your-scene-url"
+            }
+            onLoad={() => {
+              console.log("Spline scene loaded successfully");
+              setIsLoaded(true);
+            }}
+            onError={(error) => {
+              console.error("Failed to load Spline scene:", error);
+              setIsLoaded(false);
+            }}
             style={{
               opacity: isLoaded ? 1 : 0,
               transition: "opacity 0.5s ease-in-out",
+              width: "100%",
+              height: "100%",
             }}
           />
         </Suspense>
