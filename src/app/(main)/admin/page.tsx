@@ -1146,9 +1146,9 @@ export default function AdminPage() {
                           </pre>
                           <p className="text-xs mt-1">
                             Generated:{" "}
-                            {ga.generatedAt
+                            {ga.generatedAt && "seconds" in ga.generatedAt
                               ? new Date(
-                                  ga.generatedAt as string
+                                  ga.generatedAt.seconds * 1000
                                 ).toLocaleDateString()
                               : "N/A"}
                           </p>

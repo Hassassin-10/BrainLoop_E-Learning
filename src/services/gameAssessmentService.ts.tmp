@@ -1,6 +1,6 @@
-"use server";
+'use server';
 
-import { db, firestoreServerTimestamp, type FieldValue } from "@/lib/firebase";
+import { firestoreServerTimestamp, type FieldValue } from "@/lib/firebase";
 import {
   collection,
   doc,
@@ -11,14 +11,14 @@ import {
   query,
   orderBy,
   deleteDoc,
-  type DocumentData,
-  type Firestore,
+  type DocumentData
 } from "firebase/firestore";
 import type {
   GameAssessment,
   GameAssessmentOutput,
-  UserGameScore,
+  UserGameScore
 } from "@/types/gameAssessment";
+import { getDb } from "@/lib/db-helpers";
 
 // Collection paths
 const COURSES_COLLECTION = "courses";
@@ -28,21 +28,19 @@ const USERS_COLLECTION = "users";
 const GAME_SCORES_SUBCOLLECTION = "gameScores";
 
 // Utility function to get document data with ID
-const getDocWithId = <T extends DocumentData>(doc: any) =>
-  ({
-    id: doc.id,
-    ...doc.data(),
-  } as T);
+const getDocWithId = <T extends DocumentData>(doc: any) => ({
+  id: doc.id,
+  ...doc.data()
+}) as T;
 
 export async function getGameAssessmentsForModule(
   courseId: string,
   moduleId: string,
   includeHidden = true
 ): Promise<GameAssessment[]> {
-  if (!courseId || !moduleId)
-    throw new Error("Course ID and Module ID are required");
+  if (!courseId || !moduleId) throw new Error("Course ID and Module ID are required");
 
-  if (!db) throw new Error("Firestore is not initialized");
+  const db = getDb();
   const collectionRef = collection(
     db,
     COURSES_COLLECTION,
@@ -53,13 +51,9 @@ export async function getGameAssessmentsForModule(
   );
 
   try {
-    const snapshot = await getDocs(
-      query(collectionRef, orderBy("generatedAt", "desc"))
-    );
-    const assessments = snapshot.docs.map((doc) =>
-      getDocWithId<GameAssessment>(doc)
-    );
-    return includeHidden ? assessments : assessments.filter((a) => !a.hidden);
+    const snapshot = await getDocs(query(collectionRef, orderBy("generatedAt", "desc")));
+    const assessments = snapshot.docs.map(doc => getDocWithId<GameAssessment>(doc));
+    return includeHidden ? assessments : assessments.filter(a => !a.hidden);
   } catch (error) {
     console.error("Error fetching game assessments:", error);
     throw new Error("Failed to fetch game assessments");
@@ -75,7 +69,7 @@ export async function getGameAssessment(
     throw new Error("Course ID, Module ID, and Assessment ID are required");
   }
 
-  if (!db) throw new Error("Firestore is not initialized");
+  const db = getDb();
   const docRef = doc(
     db,
     COURSES_COLLECTION,
@@ -105,10 +99,10 @@ export async function saveGeneratedAssessment(
     moduleId,
     ...assessmentOutput,
     generatedAt: firestoreServerTimestamp(),
-    approvedByAdmin: false,
+    approvedByAdmin: false
   };
 
-  if (!db) throw new Error("Firestore is not initialized");
+  const db = getDb();
   const collectionRef = collection(
     db,
     COURSES_COLLECTION,
@@ -141,7 +135,8 @@ export async function saveUserGameScore(
   if (!userId || !data.assessmentId) {
     throw new Error("User ID and Assessment ID are required");
   }
-  if (!db) throw new Error("Firestore is not initialized");
+
+  const db = getDb();
   const docRef = doc(
     db,
     USERS_COLLECTION,
@@ -159,7 +154,7 @@ export async function saveUserGameScore(
     maxScore: 100,
     timeTaken: 0,
     answers: data.answers,
-    completedAt: firestoreServerTimestamp(),
+    completedAt: firestoreServerTimestamp()
   };
 
   try {
@@ -177,7 +172,8 @@ export async function getUserGameScore(
   if (!userId || !assessmentId) {
     throw new Error("User ID and Assessment ID are required");
   }
-  if (!db) throw new Error("Firestore is not initialized");
+
+  const db = getDb();
   const docRef = doc(
     db,
     USERS_COLLECTION,
@@ -205,7 +201,7 @@ export async function setGameAssessmentApproval(
     throw new Error("Course ID, Module ID, and Assessment ID are required");
   }
 
-  if (!db) throw new Error("Firestore is not initialized");
+  const db = getDb();
   const docRef = doc(
     db,
     COURSES_COLLECTION,
@@ -233,7 +229,7 @@ export async function deleteGameAssessment(
     throw new Error("Course ID, Module ID, and Assessment ID are required");
   }
 
-  if (!db) throw new Error("Firestore is not initialized");
+  const db = getDb();
   const docRef = doc(
     db,
     COURSES_COLLECTION,

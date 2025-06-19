@@ -1,4 +1,4 @@
-'use client'; // Can be 'use server' if all functions are server actions
+"use client"; // Can be 'use server' if all functions are server actions
 
 import {
   db,
@@ -7,8 +7,8 @@ import {
   type FieldValue,
   arrayUnion,
   arrayRemove,
-  firebaseInitializationError, 
-} from '@/lib/firebase';
+  firebaseInitializationError,
+} from "@/lib/firebase";
 import {
   collection,
   doc,
@@ -24,20 +24,20 @@ import {
   deleteDoc,
   type Unsubscribe,
   type FirestoreError,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 import type {
   LiveMeeting,
   MeetingParticipant,
   MeetingChatMessage,
   MeetingSummary,
-  CreateMeetingData
-} from '@/types/liveMeeting';
-import { v4 as uuidv4 } from 'uuid'; 
+  CreateMeetingData,
+} from "@/types/liveMeeting";
+import { v4 as uuidv4 } from "uuid";
 
-const LIVE_MEETINGS_COLLECTION = 'liveMeetings';
-const PRESENCE_SUBCOLLECTION = 'presence';
-const CHAT_SUBCOLLECTION = 'chat';
-const SUMMARY_SUBCOLLECTION = 'summary'; 
+const LIVE_MEETINGS_COLLECTION = "liveMeetings";
+const PRESENCE_SUBCOLLECTION = "presence";
+const CHAT_SUBCOLLECTION = "chat";
+const SUMMARY_SUBCOLLECTION = "summary";
 
 // --- Meeting Management ---
 export async function createLiveMeeting(
@@ -47,20 +47,26 @@ export async function createLiveMeeting(
   title?: string
 ): Promise<string> {
   if (!courseId || !moduleId || !createdByStudentId) {
-    throw new Error('Course ID, Module ID, and Creator ID are required.');
+    throw new Error("Course ID, Module ID, and Creator ID are required.");
   }
-  if (createdByStudentId !== '8918') { // Ensure only admin can create
-    throw new Error('Only Admin (ID: 8918) can create meetings.');
+  if (createdByStudentId !== "8918") {
+    // Ensure only admin can create
+    throw new Error("Only Admin (ID: 8918) can create meetings.");
   }
 
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot create live meeting.");
-    throw new Error('Firestore is not available.');
+    throw new Error("Firestore is not available.");
   }
 
-  const jitsiRoomName = `brainloop-${courseId}-${moduleId}-${uuidv4().substring(0, 8)}`;
+  const jitsiRoomName = `brainloop-${courseId}-${moduleId}-${uuidv4().substring(
+    0,
+    8
+  )}`;
 
-  const meetingData: Omit<LiveMeeting, 'id' | 'startedAt'> & { startedAt: FieldValue } = {
+  const meetingData: Omit<LiveMeeting, "id" | "startedAt"> & {
+    startedAt: FieldValue;
+  } = {
     courseId,
     moduleId,
     title: title || `Live Session for ${moduleId}`,
@@ -70,12 +76,19 @@ export async function createLiveMeeting(
     jitsiRoomName,
   };
 
-  const docRef = await addDoc(collection(db, LIVE_MEETINGS_COLLECTION), meetingData);
-  console.log(`Live meeting created with ID: ${docRef.id}, Jitsi room: ${jitsiRoomName}`);
+  const docRef = await addDoc(
+    collection(db, LIVE_MEETINGS_COLLECTION),
+    meetingData
+  );
+  console.log(
+    `Live meeting created with ID: ${docRef.id}, Jitsi room: ${jitsiRoomName}`
+  );
   return docRef.id;
 }
 
-export async function getLiveMeeting(roomId: string): Promise<LiveMeeting | null> {
+export async function getLiveMeeting(
+  roomId: string
+): Promise<LiveMeeting | null> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot get live meeting.");
     return null;
@@ -95,7 +108,10 @@ export function getAllActiveLiveMeetings(
 ): Unsubscribe {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot fetch live meetings.");
-    onError({ code: 'unavailable', message: 'Firestore is not available.' } as FirestoreError);
+    onError({
+      code: "unavailable",
+      message: "Firestore is not available.",
+    } as FirestoreError);
     return () => {};
   }
 
@@ -112,23 +128,30 @@ export function getAllActiveLiveMeetings(
   // You can usually create this index via the link provided in Firebase console error messages.
   const q = query(
     collection(db, LIVE_MEETINGS_COLLECTION),
-    where('isActive', '==', true)
+    where("isActive", "==", true)
     // orderBy('startedAt', 'desc') // Temporarily removed to simplify index needs.
-                                      // Client-side sorting is now applied below.
+    // Client-side sorting is now applied below.
   );
 
-  return onSnapshot(q, (querySnapshot) => {
-    const meetings = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as LiveMeeting));
-    // Client-side sorting as orderBy was removed from the query
-    meetings.sort((a, b) => {
-      const timeA = a.startedAt instanceof Timestamp ? a.startedAt.toMillis() : 0;
-      const timeB = b.startedAt instanceof Timestamp ? b.startedAt.toMillis() : 0;
-      return timeB - timeA; // Sort descending by start time (newest first)
-    });
-    callback(meetings);
-  }, onError);
+  return onSnapshot(
+    q,
+    (querySnapshot) => {
+      const meetings = querySnapshot.docs.map(
+        (docSnap) => ({ id: docSnap.id, ...docSnap.data() } as LiveMeeting)
+      );
+      // Client-side sorting as orderBy was removed from the query
+      meetings.sort((a, b) => {
+        const timeA =
+          a.startedAt instanceof Timestamp ? a.startedAt.toMillis() : 0;
+        const timeB =
+          b.startedAt instanceof Timestamp ? b.startedAt.toMillis() : 0;
+        return timeB - timeA; // Sort descending by start time (newest first)
+      });
+      callback(meetings);
+    },
+    onError
+  );
 }
-
 
 export function getLiveMeetingsForCourseModule(
   courseId: string,
@@ -136,40 +159,54 @@ export function getLiveMeetingsForCourseModule(
   callback: (meetings: LiveMeeting[]) => void,
   onError: (error: FirestoreError) => void
 ): Unsubscribe {
-   if (firebaseInitializationError || !db) {
-    console.error("Firestore is not initialized. Cannot fetch live meetings for course module.");
-    onError({ code: 'unavailable', message: 'Firestore is not available.' } as FirestoreError);
+  if (firebaseInitializationError || !db) {
+    console.error(
+      "Firestore is not initialized. Cannot fetch live meetings for course module."
+    );
+    onError({
+      code: "unavailable",
+      message: "Firestore is not available.",
+    } as FirestoreError);
     return () => {};
   }
   // This query will require a composite index: courseId ASC, moduleId ASC, isActive ASC, startedAt DESC
   // Or, remove orderBy and sort client-side if index creation is an issue.
   const q = query(
     collection(db, LIVE_MEETINGS_COLLECTION),
-    where('courseId', '==', courseId),
-    where('moduleId', '==', moduleId),
-    where('isActive', '==', true),
-    orderBy('startedAt', 'desc') 
+    where("courseId", "==", courseId),
+    where("moduleId", "==", moduleId),
+    where("isActive", "==", true),
+    orderBy("startedAt", "desc")
   );
 
-  return onSnapshot(q, (querySnapshot) => {
-    const meetings = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as LiveMeeting));
-    callback(meetings);
-  }, onError);
+  return onSnapshot(
+    q,
+    (querySnapshot) => {
+      const meetings = querySnapshot.docs.map(
+        (docSnap) => ({ id: docSnap.id, ...docSnap.data() } as LiveMeeting)
+      );
+      callback(meetings);
+    },
+    onError
+  );
 }
 
-
-export async function endLiveMeeting(roomId: string, currentUserId: string): Promise<void> {
+export async function endLiveMeeting(
+  roomId: string,
+  currentUserId: string
+): Promise<void> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot end live meeting.");
-    throw new Error('Firestore is not available.');
+    throw new Error("Firestore is not available.");
   }
   const meetingDocRef = doc(db, LIVE_MEETINGS_COLLECTION, roomId);
   const meeting = await getLiveMeeting(roomId);
 
   if (!meeting) throw new Error("Meeting not found.");
-  
-  if (currentUserId !== '8918') { // Check if current user is the admin
-    throw new Error('Only Admin (ID: 8918) can end the meeting.');
+
+  if (currentUserId !== "8918") {
+    // Check if current user is the admin
+    throw new Error("Only Admin (ID: 8918) can end the meeting.");
   }
 
   await updateDoc(meetingDocRef, {
@@ -179,12 +216,22 @@ export async function endLiveMeeting(roomId: string, currentUserId: string): Pro
 }
 
 // --- Participant Presence Management ---
-export async function joinMeeting(roomId: string, studentId: string, studentName: string): Promise<void> {
+export async function joinMeeting(
+  roomId: string,
+  studentId: string,
+  studentName: string
+): Promise<void> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot join meeting.");
-    throw new Error('Firestore is not available.');
+    throw new Error("Firestore is not available.");
   }
-  const presenceDocRef = doc(db, LIVE_MEETINGS_COLLECTION, roomId, PRESENCE_SUBCOLLECTION, studentId);
+  const presenceDocRef = doc(
+    db,
+    LIVE_MEETINGS_COLLECTION,
+    roomId,
+    PRESENCE_SUBCOLLECTION,
+    studentId
+  );
   await setDoc(presenceDocRef, {
     studentId,
     name: studentName,
@@ -193,12 +240,21 @@ export async function joinMeeting(roomId: string, studentId: string, studentName
   });
 }
 
-export async function leaveMeeting(roomId: string, studentId: string): Promise<void> {
+export async function leaveMeeting(
+  roomId: string,
+  studentId: string
+): Promise<void> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot leave meeting.");
-    throw new Error('Firestore is not available.');
+    throw new Error("Firestore is not available.");
   }
-  const presenceDocRef = doc(db, LIVE_MEETINGS_COLLECTION, roomId, PRESENCE_SUBCOLLECTION, studentId);
+  const presenceDocRef = doc(
+    db,
+    LIVE_MEETINGS_COLLECTION,
+    roomId,
+    PRESENCE_SUBCOLLECTION,
+    studentId
+  );
   await updateDoc(presenceDocRef, {
     active: false,
     leftAt: firestoreServerTimestamp(),
@@ -211,17 +267,31 @@ export function getMeetingParticipants(
   onError: (error: FirestoreError) => void
 ): Unsubscribe {
   if (firebaseInitializationError || !db) {
-    console.error("Firestore is not initialized. Cannot get meeting participants.");
-     onError({ code: 'unavailable', message: 'Firestore is not available.' } as FirestoreError);
+    console.error(
+      "Firestore is not initialized. Cannot get meeting participants."
+    );
+    onError({
+      code: "unavailable",
+      message: "Firestore is not available.",
+    } as FirestoreError);
     return () => {};
   }
-  const q = query(collection(db, LIVE_MEETINGS_COLLECTION, roomId, PRESENCE_SUBCOLLECTION), where('active', '==', true));
-  return onSnapshot(q, (querySnapshot) => {
-    const participants = querySnapshot.docs.map(docSnap => ({ studentId: docSnap.id, ...docSnap.data() } as MeetingParticipant));
-    callback(participants);
-  }, onError);
+  const q = query(
+    collection(db, LIVE_MEETINGS_COLLECTION, roomId, PRESENCE_SUBCOLLECTION),
+    where("active", "==", true)
+  );
+  return onSnapshot(
+    q,
+    (querySnapshot) => {
+      const participants = querySnapshot.docs.map(
+        (docSnap) =>
+          ({ studentId: docSnap.id, ...docSnap.data() } as MeetingParticipant)
+      );
+      callback(participants);
+    },
+    onError
+  );
 }
-
 
 // --- Chat Management ---
 export async function sendMeetingChatMessage(
@@ -232,19 +302,27 @@ export async function sendMeetingChatMessage(
 ): Promise<string> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot send chat message.");
-    throw new Error('Firestore is not available.');
+    throw new Error("Firestore is not available.");
   }
   if (!roomId || !senderId || !text.trim()) {
-    throw new Error('Room ID, Sender ID, and message text are required.');
+    throw new Error("Room ID, Sender ID, and message text are required.");
   }
-  const chatData: Omit<MeetingChatMessage, 'id' | 'timestamp'> & { timestamp: FieldValue, pinned: boolean } = {
+  const chatData: Omit<MeetingChatMessage, "id" | "timestamp"> & {
+    timestamp: FieldValue;
+    pinned: boolean;
+  } = {
     senderId,
     senderName,
     text,
     timestamp: firestoreServerTimestamp(),
     pinned: false,
   };
-  const chatCollectionRef = collection(db, LIVE_MEETINGS_COLLECTION, roomId, CHAT_SUBCOLLECTION);
+  const chatCollectionRef = collection(
+    db,
+    LIVE_MEETINGS_COLLECTION,
+    roomId,
+    CHAT_SUBCOLLECTION
+  );
   const docRef = await addDoc(chatCollectionRef, chatData);
   return docRef.id;
 }
@@ -256,43 +334,71 @@ export function getMeetingChatMessages(
 ): Unsubscribe {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot get chat messages.");
-    onError({ code: 'unavailable', message: 'Firestore is not available.' } as FirestoreError);
+    onError({
+      code: "unavailable",
+      message: "Firestore is not available.",
+    } as FirestoreError);
     return () => {};
   }
-  const q = query(collection(db, LIVE_MEETINGS_COLLECTION, roomId, CHAT_SUBCOLLECTION), orderBy('timestamp', 'asc'));
-  return onSnapshot(q, (querySnapshot) => {
-    const messages = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as MeetingChatMessage));
-    callback(messages);
-  }, onError);
+  const q = query(
+    collection(db, LIVE_MEETINGS_COLLECTION, roomId, CHAT_SUBCOLLECTION),
+    orderBy("timestamp", "asc")
+  );
+  return onSnapshot(
+    q,
+    (querySnapshot) => {
+      const messages = querySnapshot.docs.map(
+        (docSnap) =>
+          ({ id: docSnap.id, ...docSnap.data() } as MeetingChatMessage)
+      );
+      callback(messages);
+    },
+    onError
+  );
 }
 
 export async function pinMeetingChatMessage(
   roomId: string,
   messageId: string,
   pinned: boolean,
-  currentUserId: string 
+  currentUserId: string
 ): Promise<void> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot pin chat message.");
-    throw new Error('Firestore is not available.');
+    throw new Error("Firestore is not available.");
   }
   const meeting = await getLiveMeeting(roomId);
   if (!meeting) throw new Error("Meeting not found.");
 
-  if (currentUserId !== '8918') { // Only Admin 8918 can pin
+  if (currentUserId !== "8918") {
+    // Only Admin 8918 can pin
     throw new Error(`Only Admin (ID: 8918) can pin messages.`);
   }
-  const messageDocRef = doc(db, LIVE_MEETINGS_COLLECTION, roomId, CHAT_SUBCOLLECTION, messageId);
+  const messageDocRef = doc(
+    db,
+    LIVE_MEETINGS_COLLECTION,
+    roomId,
+    CHAT_SUBCOLLECTION,
+    messageId
+  );
   await updateDoc(messageDocRef, { pinned });
 }
 
 // --- Summary (Conceptual - Generation would be a backend function) ---
-export async function getMeetingSummary(roomId: string): Promise<MeetingSummary | null> {
+export async function getMeetingSummary(
+  roomId: string
+): Promise<MeetingSummary | null> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot get meeting summary.");
     return null;
   }
-  const summaryDocRef = doc(db, LIVE_MEETINGS_COLLECTION, roomId, SUMMARY_SUBCOLLECTION, 'details'); 
+  const summaryDocRef = doc(
+    db,
+    LIVE_MEETINGS_COLLECTION,
+    roomId,
+    SUMMARY_SUBCOLLECTION,
+    "details"
+  );
   const docSnap = await getDoc(summaryDocRef);
   if (docSnap.exists()) {
     return { id: roomId, ...docSnap.data() } as MeetingSummary;
@@ -300,26 +406,41 @@ export async function getMeetingSummary(roomId: string): Promise<MeetingSummary 
   return null;
 }
 
-export async function saveMeetingSummary(roomId: string, summaryData: Omit<MeetingSummary, 'id' | 'generatedAt'> & {generatedAt: FieldValue}): Promise<void> {
+export async function saveMeetingSummary(
+  roomId: string,
+  summaryData: Omit<MeetingSummary, "id" | "generatedAt"> & {
+    generatedAt: FieldValue;
+  }
+): Promise<void> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot save meeting summary.");
-    throw new Error('Firestore is not available.');
+    throw new Error("Firestore is not available.");
   }
-  const summaryDocRef = doc(db, LIVE_MEETINGS_COLLECTION, roomId, SUMMARY_SUBCOLLECTION, 'details');
-  await setDoc(summaryDocRef, { roomId, ...summaryData });
+  const summaryDocRef = doc(
+    db,
+    LIVE_MEETINGS_COLLECTION,
+    roomId,
+    SUMMARY_SUBCOLLECTION,
+    "details"
+  );
+  await setDoc(summaryDocRef, summaryData);
 }
 
-export async function deleteLiveMeeting(roomId: string, currentUserId: string): Promise<void> {
+export async function deleteLiveMeeting(
+  roomId: string,
+  currentUserId: string
+): Promise<void> {
   if (firebaseInitializationError || !db) {
     console.error("Firestore is not initialized. Cannot delete live meeting.");
-    throw new Error('Firestore is not available.');
+    throw new Error("Firestore is not available.");
   }
   const meeting = await getLiveMeeting(roomId);
   if (!meeting) throw new Error("Meeting not found.");
 
-  if (currentUserId !== '8918') { // Only Admin 8918 can delete
+  if (currentUserId !== "8918") {
+    // Only Admin 8918 can delete
     throw new Error(`Only Admin (ID: 8918) can delete the meeting.`);
   }
-  
+
   await deleteDoc(doc(db, LIVE_MEETINGS_COLLECTION, roomId));
 }
